@@ -1,5 +1,5 @@
 # Blue Green Deployment
-###Demonstration of the blue-green deployment technique
+### Demonstration of the blue-green deployment technique
 
 ----------
 
@@ -26,6 +26,7 @@
 ----------
 
 ## Foreword
+
 Just over a week ago, a challenge crossed my desk. It read: _Thou shall find a way to implement thy app with no downtime nor pain for thy user, and thou shall solve it within a week!_
 
 I thought _huh, how hard can it be?_
@@ -263,6 +264,7 @@ Time to write our docker compose file, where we specify our services, networks, 
 Once up and running, controlling our system is quite easy. Scripts are provided by this solution that take care of it with a single command. I am going to enumerate and explain them one by one.
 
 ### Deployment
+
 In order to deploy an app, all we have to do is to edit the _image_ section from one of the services on the _docker-compose.yml_ file (either blue or green, not bg, the proxy). After that, we just run the script related to that service. 
 
 The **deploy-blue.sh** script will perform an update of the blue service, while the **deploy-green.sh** script will do the same for the green service.
@@ -270,18 +272,21 @@ The **deploy-blue.sh** script will perform an update of the blue service, while 
 >NOTE: Both scripts will first check whether you are deploying to the LIVE or the IDLE instance. If deployment to the LIVE one is detected, the script will warn you and prompt you to continue, the default answer being **NO**. 
 
 ### Determining the LIVE instance
+
 In order to do so, we just run the **get-live-environment.sh** script. It will connect to the swarm and return the value for the LIVE instance. 
 
 >NOTE: If the instance is undefined, it will issue a warning.
 
-###Switching between LIVE and IDLE instances
+### Switching between LIVE and IDLE instances
+
 There are two scripts that can do that for you. These are **switch-blue.sh** and **switch-green.sh**. Those will Force the proxy to set the live environment to their respective instances.
 
 Also, there is a script that will automatically toggle the instances. It is called **toggle-bluegreen.sh**, and will connect to the swarm, determine which one is the LIVE instance, then switch them. 
 
 >NOTE: If the instance is undefined, it will issue a warning.
 
-###Checking the health of the service
+### Checking the health of the service
+
 For this, we have the **healthcheck.sh** script. It checks whether our services are working, doing poorly, or not working at all. It prints their status on screen and also writes it down to a logfile located on **/var/log/challenge**. 
 
 >NOTE: This health check is quite rudimentary, and was written only for the purpose of demonstrating how to check our services are working. It will fail should the internet connection between you and the host were interrupted. Response time can also be affected by your network traffic.
@@ -306,6 +311,7 @@ The **stop-services.sh** script takes care of that. It connects to the swarm and
 it got run accidentally.
 
 ### Disposing of the swarm
+
 I wrote no script for such action, but it can be done after stopping the swarm by executing the following commands:
 
     docker-machine stop consul master slave
@@ -314,6 +320,7 @@ I wrote no script for such action, but it can be done after stopping the swarm b
 ----------
 
 ## Bibliographic Material
+
 **I got the idea of using the Blue/Green technique by reading the following articles**
 
  - _BlueGreenDeployment, Martin Fowler_ - https://martinfowler.com/bliki/BlueGreenDeployment.html
