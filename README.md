@@ -413,20 +413,24 @@ I wrote no script for such action, but it can be done after stopping the swarm b
 
 ## Afterthoughts
 
+As you can see, Deployment is now way easier using the blue/green technique. Also almost totally painless and very fast.
 
+Add some Ansible/Jenkins magic to this solution, and you can have a fully automated CI/CD pipeline running in no time!
+
+We are on the verge of a future where being a developer is something completely different to what it used to be during the early 2000's.
+Back then, projects were managed in a painful way that made going from the design stage to production quite the painful experience. Enter B/G + CD/CI plus a high degree of automation, and the path to the MVP is way easier to walk.
+
+
+On a more personal note, this was quite the journey. Before starting, I saw myself as a knowledgeable sysop, yet diving into this I discovered a whole new world I wasn't previously aware of. 
+
+I still have a lot to learn. I even had too google things I had forgot, like bash not supporting floating point, and some cURL magic I hadn't used in ages.
+
+There was no learning curve here. It was more like... an instantaneous jump from there to here (if you don't believe me, see the bibliography section, it's quite large!). 
 
 
 ----------
 
 ## Backlog
 
- - Finish section III - _Blue, Green and Proxy Setup_, as it does not yet explains itself fully.
- - Add remaining bibliography
- - Add afterthoughts
+ - Finish section III - _Blue, Green and Proxy Setup_, as it does not yet explains how the nginx config is generated.
  - Check for consistency, typos, etc
-
-
-
-
-
-
