@@ -9,6 +9,7 @@
  - **Introduction**
  - **Prerequisites**
  - **Associated Material**
+ - **How does it works?**
  - **Installation and Setup of the various components**
   - _I - Docker Installation_
   - _II - Swarm Setup_
@@ -41,16 +42,25 @@ This repo is about the journey of a sysadmin/developer looking for a way to solv
 
 ## Introduction 
 
-After a lot of research in the subject, I came across Mr. Martin Fowler's blog. It seems he had the exact same problem I was presented with. Namely, **how to perform Continuous Delivery without having to put the site on maintenance mode, or stopping the service altogether while doing so**. 
+In the past, most deployment methods required the site or app to go into maintenance mode or altogether offline in order to get updated. 
+This used to be inconvenient for the user, as he can't use our service during such window. 
 
-His approach was quite simple, yet elegant:
-**By having two production machines running the exact same version of our app, only one of them being live at any given moment handling all user requests and traffic while the other is idle, the new version of our app could be deployed to the idle machine**, which is accessible on a different address and/or port, **without interrupting the users from accessing our service.**
+Historically, such maintenance windows used to be performed during off-hours, but as services become more _mission-critical_ or are provided across the globe, such practices become less and less acceptable, as there are no off-hours any more.
 
-Whenever it was required that the new version went **LIVE**, this could be easily accomplished by just redirecting traffic from the live to the idle machine _while allowing all active requests to gracefully finish_. That way, the moment the switch is made, all new requests are handled by the now LIVE machine, while the now IDLE one is in the process of being drained.
+Also, if something went wrong, a rollback might require the old version to be re-uploaded or restored from an out-of-site backup, adding up to the total downtime and also to the unhappiness of the user base. 
+
+So, having considered that, I began my research into the matter, and after some time, I came across Mr. Martin Fowler's blog. It seems he has had the exact same problem I was presented with. Namely, **how to perform Continuous Delivery without having to put the site on maintenance mode, or stopping the service altogether while doing so**. 
+
+
+**His approach was quite simple, yet elegant:**
+
+>**By having two production machines running the exact same version of our app, only one of them being live at any given moment handling all user requests and traffic while the other is idle, the new version of our app could be deployed to the idle machine**, which is accessible on a different address and/or port, **without interrupting the users from accessing our service.**
+
+>Whenever it was required that the new version went **LIVE**, this could be easily accomplished by just redirecting traffic from the live to the idle machine _while allowing all active requests to gracefully finish_. That way, the moment the switch is made, all new requests are handled by the now LIVE machine, while the now IDLE one is in the process of being drained.
 
 **This is accomplished by having a proxy, which is exposed to the Internet and receives all traffic, to direct it to the appropriate machine by knowing which one is currently LIVE and which one, IDLE.**
 
-The technique is called Blue/Green Deployment (also Red/Black or A/B), and in this article, we **are** going to implement such technique.
+The technique is called Blue/Green Deployment (also Red/Black or A/B), and in this article, we are going to implement it.
 
 ----------
 
@@ -91,6 +101,28 @@ Within this repo you are going to find all the scripts required to perform the v
   - **_switch-green.sh_** - Same, but for GREEN.
   - **_toggle-bluegreen.sh_** - Connects to the swarm and after determining the LIVE environment, toggles it.
   - **_stop-services.sh_** - Connects to the swarm and stops it.
+
+----------
+
+# How does it work?
+
+We are going to create three droplets:
+
+- The first one will be our proxy, to where all our traffic will arrive. It is going to direct it to the proper container depending whether we try to access the LIVE or IDLE node. For the sake of simplicity, we are going to do it depending on the port the incoming request is aiming at, having the LIVE version at port 80, and the IDLE one at port 8080.
+
+- The second one is going to be our service host, where both Blue and Green will be.
+>NOTE: Initially, Blue will be the LIVE version while we will use Green for deployment.
+
+- The third machine will be running Consul. Its sole purpose: key-value store for service discovery and config storage.
+
+In order to keep track of the services running on each host, we will also need to have a registrator service running in each. For this we will use gliderlabs/registrator:v6. You can see how they are connected on the swarm setup script, namely:
+
+    docker run -d --name=registrator -h ${MASTER_IP} --volume=/var/run/docker.sock:/tmp/docker.sock \
+      gliderlabs/registrator:v6 consul://${KV_IP}:8500
+
+    docker run -d --name=registrator -h ${SLAVE_IP} --volume=/var/run/docker.sock:/tmp/docker.sock \
+      gliderlabs/registrator:v6 consul://${KV_IP}:8500
+
 
 ----------
 
@@ -326,13 +358,75 @@ I wrote no script for such action, but it can be done after stopping the swarm b
  - _BlueGreenDeployment, Martin Fowler_ - https://martinfowler.com/bliki/BlueGreenDeployment.html
  - _Using Blue-Green Deployment to Reduce Downtime and Risk_ - https://docs.cloudfoundry.org/devguide/deploy-apps/blue-green.html
 
+ - _B/G deployment_ - https://lostechies.com/gabrielschenker/2016/05/23/blue-green-deployment/
+
+ - _B/G deployment, using containers_ - https://blog.tutum.co/2015/06/08/blue-green-deployment-using-containers/
+
+ - _Blue/Green deployment with HAproxy_ - https://www.reddit.com/r/sysadmin/comments/53h919/blue_green_deployment_with_haproxy/
+
+ - _Docker flow_ - https://technologyconversations.com/2016/04/18/docker-flow/
+
+ - _Research into doing it with Jenkins_ - https://technologyconversations.com/2015/12/08/blue-green-deployment-to-docker-swarm-with-jenkins-workflow-plugin/
+
 **Regarding Docker, I read the following articles**
 
  - _Best practices for writing Dockerfiles_ - https://docs.docker.com/engine/userguide/eng-image/dockerfile_best-practices/
  - _Installing Docker Machine_ - https://docs.docker.com/machine/install-machine/#installing-machine-directly
 
+ - _Docker in production environments_ - https://docs.docker.com/compose/production/
+
+ - _Zero downtime deployment with docker_ - https://medium.com/@korolvs/zero-downtime-deployment-with-docker-d9ef54e48c4#.kz6wgafyu
+
+ - _Another Zero downtime article_ - https://www.perimeterx.com/blog/zero-downtime-deployment-with-docker/
+
+ - _Bluegreen with haproxy_ - https://github.com/docker/dockercloud-haproxy
+
+ - _Docker compose overview_ - https://docs.docker.com/compose/overview/
+
+ - _How to create a swarm_ - https://docs.docker.com/engine/swarm/swarm-tutorial/create-swarm/
+
+ - _Stacks_ - https://docs.docker.com/docker-cloud/apps/stacks/
+
+ - _Deployment strategies (High Availability)_ - https://docs.docker.com/docker-cloud/infrastructure/deployment-strategies/
+
+ - _Dockerfile reference_ - https://docs.docker.com/engine/reference/builder/
+
+ - _Automated Builds_ - https://docs.docker.com/docker-cloud/builds/automated-build/
+
 **Also, articles related to various things**
 
-- _Reload a Linux users-group assignments without logging out_ - https://superuser.com/questions/272061/reload-a-linux-users-group-assignments-without-logging-out
+ - _Reload a Linux users-group assignments without logging out_ - https://superuser.com/questions/272061/reload-a-linux-users-group-assignments-without-logging-out
 
-- _GitLab postmortem, or as I like to call it: "Criminal Negligence: how all went to hell because we didn't check that our backup mechanisms were working properly, nor we cared to run a simulacrum of our disaster recovery procedure in order to determine if it did work as intended"_ - https://about.gitlab.com/2017/02/10/postmortem-of-database-outage-of-january-31/
+ - _GitLab postmortem, or as I like to call it: "Criminal Negligence: how all went to hell because we didn't check that our backup mechanisms were working properly, nor we cared to run a simulacrum of our disaster recovery procedure in order to determine if it did work as intended"_ - https://about.gitlab.com/2017/02/10/postmortem-of-database-outage-of-january-31/
+
+ - _Pushing to a git remote_ - https://help.github.com/articles/pushing-to-a-remote/
+
+ - _Removing leading zeroes from a variable in bash_ - https://coderwall.com/p/cobcna/bash-removing-leading-zeroes-from-a-variable
+
+ - _Curl get response time_ - https://viewsby.wordpress.com/2013/01/07/get-response-time-with-curl/
+
+ - _How to dockerize a nodejs app_ - https://nodejs.org/en/docs/guides/nodejs-docker-webapp/
+
+ - _Bash seems not to like floating point numbers..._ - http://stackoverflow.com/questions/19597962/bash-illegal-number
+
+----------
+
+## Afterthoughts
+
+
+
+
+----------
+
+## Backlog
+
+ - Finish section III - _Blue, Green and Proxy Setup_, as it does not yet explains itself fully.
+ - Add remaining bibliography
+ - Add afterthoughts
+ - Check for consistency, typos, etc
+
+
+
+
+
+
