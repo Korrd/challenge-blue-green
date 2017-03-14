@@ -25,7 +25,7 @@
 
 ----------
 
-##Foreword
+## Foreword
 Just over a week ago, a challenge crossed my desk. It read: _Thou shall find a way to implement thy app with no downtime nor pain for thy user, and thou shall solve it within a week!_
 
 I thought _huh, how hard can it be?_
@@ -38,7 +38,7 @@ This repo is about the journey of a sysadmin/developer looking for a way to solv
 
 ----------
 
-##Introduction 
+## Introduction 
 
 After a lot of research in the subject, I came across Mr. Martin Fowler's blog. It seems he had the exact same problem I was presented with. Namely, **how to perform Continuous Delivery without having to put the site on maintenance mode, or stopping the service altogether while doing so**. 
 
@@ -53,7 +53,7 @@ The technique is called Blue/Green Deployment (also Red/Black or A/B), and in th
 
 ----------
 
-##Prerequisites
+## Prerequisites
 
 We are going to need a machine running Linux with the following software installed:
 
@@ -67,7 +67,7 @@ For reference, I wrote this article and implemented this solution from my develo
 
 ----------
 
-##Associated Material
+## Associated Material
 
 Within this repo you are going to find all the scripts required to perform the various tasks associated with the installation of the required software, implementation of our solution, and also to control it and deploy the Docker containers. These are the following:
 
@@ -93,7 +93,7 @@ Within this repo you are going to find all the scripts required to perform the v
 
 ----------
 
-#Installation and Swarm Setup 
+# Installation and Swarm Setup 
 
 ## I - Docker Installation
 
@@ -258,18 +258,18 @@ Time to write our docker compose file, where we specify our services, networks, 
     
 ----------
 
-#Control of the System
+# Control of the System
 
 Once up and running, controlling our system is quite easy. Scripts are provided by this solution that take care of it with a single command. I am going to enumerate and explain them one by one.
 
-###Deployment
+### Deployment
 In order to deploy an app, all we have to do is to edit the _image_ section from one of the services on the _docker-compose.yml_ file (either blue or green, not bg, the proxy). After that, we just run the script related to that service. 
 
 The **deploy-blue.sh** script will perform an update of the blue service, while the **deploy-green.sh** script will do the same for the green service.
 
 >NOTE: Both scripts will first check whether you are deploying to the LIVE or the IDLE instance. If deployment to the LIVE one is detected, the script will warn you and prompt you to continue, the default answer being **NO**. 
 
-###Determining the LIVE instance
+### Determining the LIVE instance
 In order to do so, we just run the **get-live-environment.sh** script. It will connect to the swarm and return the value for the LIVE instance. 
 
 >NOTE: If the instance is undefined, it will issue a warning.
@@ -300,12 +300,12 @@ For this, we have the **healthcheck.sh** script. It checks whether our services 
 > - b) If one of the health check services were to fail, the all-is-well signal would stop, hence it would not fail silently (like what happened to the people at GitLab with their backup system). 
  
 
-###Stopping the swarm
+### Stopping the swarm
 
 The **stop-services.sh** script takes care of that. It connects to the swarm and stops it all. It will prompt you before running, just in case 
 it got run accidentally.
 
-###Disposing of the swarm
+### Disposing of the swarm
 I wrote no script for such action, but it can be done after stopping the swarm by executing the following commands:
 
     docker-machine stop consul master slave
