@@ -20,10 +20,11 @@
 # version on the old LIVE, not-yet-updated container.
 
 # For more information, hit the readme.md from this repo at <repo-address-here>!
-
+echo "Before continuing, you need to edit this script and replace <YOUR_TOKEN> with your digital ocean access token."
+exit
 
 # DigitalOcean variables
-DIGITALOCEAN_ACCESS_TOKEN=03ff535644744e32b1fba9c290c85e70dda0f8b3bb6a733eeda608ed520dfe1f
+DIGITALOCEAN_ACCESS_TOKEN=<YOUR_TOKEN>
 DIGITALOCEAN_PRIVATE_NETWORKING=true
 DIGITALOCEAN_IMAGE=debian-8-x64
 
