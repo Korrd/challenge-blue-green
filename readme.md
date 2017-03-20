@@ -1,5 +1,5 @@
-# Blue Green Deployment
-### Demonstration of the blue-green deployment technique
+# Blue Green Deployment with Docker Swarm
+### Demonstration of the blue-green deployment technique using docker in swarm mode
 
 ----------
 
@@ -8,21 +8,21 @@
  - **Foreword**
  - **Introduction**
  - **Prerequisites**
- - **Associated Material**
- - **How does it works?**
- - **Installation and Setup of the various components**
+ - **How does this implementation work?**
+ - **Installation and swarm setup**
   - _I - Docker Installation_
   - _II - Swarm Setup_
-  - _III - Blue, Green and Proxy Setup_
+  - _III - Services' Deployment_
+  - _IV - Proxy Setup_
  - **Control of the System**
-  - Deployment
+  - Updating our app
+  - Checking the health of the service
   - Determining the LIVE instance
   - Switching between LIVE and IDLE instances
-  - Checking the health of the service
   - Stopping the swarm
   - Disposing of the swarm
-  - Bibliographic Material
-  - Afterthoughts
+ - **Research Material**
+ - **Afterthoughts**
 
 ----------
 
@@ -36,7 +36,7 @@ And as usual, when such a question is asked, Murphy came to my place to stay for
 
 And so this odyssey began...
 
-This repo is about the journey of a sysadmin/developer looking for a way to solve such challenge, having done this like, ZERO times in the past. 
+This repository is about the journey of a sysadmin/developer looking for a way to solve such challenge, having never done this before.
 
 ----------
 
@@ -45,12 +45,11 @@ This repo is about the journey of a sysadmin/developer looking for a way to solv
 In the past, most deployment methods required the site or app to go into maintenance mode or altogether offline in order to get updated. 
 This used to be inconvenient for the user, as he can't use our service during such window. 
 
-Historically, such maintenance windows used to be performed during off-hours, but as services become more _mission-critical_ or are provided across the globe, such practices become less and less acceptable, as there are no off-hours any more.
+Historically, such maintenance windows used to be performed during off-hours, but as services become more _mission-critical_ or are provided across the globe, such practices become less and less acceptable, as there are no off-hours anymore.
 
-Also, if something went wrong, a rollback might require the old version to be re-uploaded or restored from an out-of-site backup, adding up to the total downtime and also to the unhappiness of the user base. 
+Also, if something went wrong, a rollback might require the old version to be re-uploaded or restored from an out-of-site backup, adding up to the total downtime and also to the unhappiness of the userbase. 
 
 So, having considered that, I began my research into the matter, and after some time, I came across Mr. Martin Fowler's blog. It seems he has had the exact same problem I was presented with. Namely, **how to perform Continuous Delivery without having to put the site on maintenance mode, or stopping the service altogether while doing so**. 
-
 
 **His approach was quite simple, yet elegant:**
 
@@ -58,70 +57,57 @@ So, having considered that, I began my research into the matter, and after some 
 
 >Whenever it was required that the new version went **LIVE**, this could be easily accomplished by just redirecting traffic from the live to the idle machine _while allowing all active requests to gracefully finish_. That way, the moment the switch is made, all new requests are handled by the now LIVE machine, while the now IDLE one is in the process of being drained.
 
-**This is accomplished by having a proxy, which is exposed to the Internet and receives all traffic, to direct it to the appropriate machine by knowing which one is currently LIVE and which one, IDLE.**
-
-The technique is called Blue/Green Deployment (also Red/Black or A/B), and in this article, we are going to implement it.
+The technique is called Blue/Green Deployment (also Red/Black or A/B), and in this article, we are going to implement it using **docker swarm**.
 
 ----------
 
 ## Prerequisites
 
-We are going to need a machine running Linux with the following software installed:
+In order to proceed with these instructions, you will first need to have:
 
-- Docker (Version 1.10 or better)
-- Docker Machine (Version 0.10 or better)
-- Docker Compose (Version 1.11.1 or better)
 
-Our machines will be DigitalOcean droplets, so you will need to have an active DigitalOcean account in order to do this.
+### 1. Virtual Machines
 
-For reference, I wrote this article and implemented this solution from my development VirtualBox VM, which runs **64-bit Ubuntu Desktop 16.04 (Xenial)**.
+**Three networked VM's**
 
-----------
+- Manager1, our swarm controller
+- Worker1, our first swarm worker
+- Worker2, our second swarm worker
 
-## Associated Material
 
-Within this repo you are going to find all the scripts required to perform the various tasks associated with the installation of the required software, implementation of our solution, and also to control it and deploy the Docker containers. These are the following:
+**The following ports must be available. On some systems, these ports are open by default**
 
- - **Related to Installation and Setup**
-  - **_docker-engine-install.sh_** - This script installs all the prerequisites here mentioned, thus enabling us to set the swarm up.
-  - **_swarm-setup.sh_** - This script sets the swarm up. 
+- TCP port 2377 for cluster management communications
+- TCP and UDP port 7946 for communication among nodes
+- UDP port 4789 for overlay network traffic
+- TCP ports 3000 and 3001 for connecting our services
+- TCP ports 80 and 8080 on manager1
 
-> NOTE: The installation scripts do require root privileges in order run properly.
-> 
+**Those machines will require the following software installed**
 
- - **Config Files**
-  - **_docker-compose.yml_** - YAML file defining services, networks and volumes for docker compose.
+- Ubuntu 16.04 xenial, 64-bit on all machines 
+- Docker Engine 1.12 or newer on all machines (I'm using the latest version)
+- Nginx on manager1
 
- - **System Control and Deployment**
-  - **_deploy-blue.sh_** - Deploys the container corresponding to the BLUE instance.
-  - **_deploy-green.sh_** - Same thing, but for the GREEN instance.
-  - **_get-live-environment.sh_** - Connects to the swarm and returns which one is the currently LIVE machine.
-  - **_healthcheck.sh_** - This one checks whether our services are working, doing poorly, or not working at all. It prints their status on screen and also writes it down to a logfile located on **/var/log/challenge**. The first time it runs, it may ask for your password in order to create it and give it the right permissions.
-  - **_switch-blue.sh_** - Forces the proxy to set the live environment to BLUE.
-  - **_switch-green.sh_** - Same, but for GREEN.
-  - **_toggle-bluegreen.sh_** - Connects to the swarm and after determining the LIVE environment, toggles it.
-  - **_stop-services.sh_** - Connects to the swarm and stops it.
+**Also, we need to assign fixed IP addresses to those machines. In this article, I will be using 192.168.2.10 for the proxy, 192.168.2.11 for the manager, 192.168.2.12 for the first worker and 192.168.2.13 for the second worker.**
+
+### 2. Local machine
+
+Our local machine will require the latest version of Docker installed, and also an ssh client of your choice. **I'm currently using vanilla Ubuntu 16.04 xenial 64bit with Docker version 17.03.0-ce**.
 
 ----------
 
-# How does it work?
+# How does this implementation work?
 
-We are going to create three droplets:
+**Using docker swarm**, we will create a swarm consisting of a manager and two workers. On it, we will be running two services listening on different ports. These will be our Blue and Green.
 
-- The first one will be our proxy, to where all our traffic will arrive. It is going to direct it to the proper container depending whether we try to access the LIVE or IDLE node. For the sake of simplicity, we are going to do it depending on the port the incoming request is aiming at, having the LIVE version at port 80, and the IDLE one at port 8080.
+Each service will be running identical versions of our app. 
 
-- The second one is going to be our service host, where both Blue and Green will be.
->NOTE: Initially, Blue will be the LIVE version while we will use Green for deployment.
+The swarm will be behind an **nginx proxy** which will be exposed to the internet. This proxy will determine which service is **LIVE** and which is **IDLE**, and will route all incoming traffic on port 80 to our **LIVE** serice, and all traffic on port 8080 to the **IDLE** service.
 
-- The third machine will be running Consul. Its sole purpose: key-value store for service discovery and config storage.
+Whenever we need to update our software, we will do so on the **IDLE** service, while leaving the **LIVE** one deal with users.
 
-In order to keep track of the services running on each host, we will also need to have a registrator service running in each. For this we will use gliderlabs/registrator:v6. You can see how they are connected on the swarm setup script, namely:
-
-    docker run -d --name=registrator -h ${MASTER_IP} --volume=/var/run/docker.sock:/tmp/docker.sock \
-      gliderlabs/registrator:v6 consul://${KV_IP}:8500
-
-    docker run -d --name=registrator -h ${SLAVE_IP} --volume=/var/run/docker.sock:/tmp/docker.sock \
-      gliderlabs/registrator:v6 consul://${KV_IP}:8500
+Once app testing is complete, and the newly updated version is deemed fit for production, the proxy will be commanded to graciously switch traffic from **LIVE** to **IDLE**, swapping their roles. This way, those requests that are in progress will be allowed to finish, while new requests will be directed to the **now LIVE** service without any kind of downtime, hence performing updates without downtime.
 
 
 ----------
@@ -130,9 +116,9 @@ In order to keep track of the services running on each host, we will also need t
 
 ## I - Docker Installation
 
-First, we are going to install docker and its associated components. For this, we will run the **_docker-engine-install.sh_** script. This script executes the following commands:
+First, we are going to install docker and its associated components. For this, we need to run the **_docker-engine-install.sh_** script _on manager1, worker1 and worker2_. This script executes the following commands:
 
->NOTE: Remember this was made for **Ubuntu Xenial**. If you are running a different version, or not using linux altogether, this script won't work for you!
+>NOTE: Remember this was made for **Ubuntu Xenial**. If you are running a different version on the VM's, or not using linux altogether, this script won't work for you!
 
     # Add repository keys
     apt-key adv \
@@ -158,202 +144,140 @@ First, we are going to install docker and its associated components. For this, w
 
 >NOTE: As usergoups are enumerated at login, you will need to log out and back in for this last command to take effect. There are ways to do it without re-logging, but it's dirty, so we won't go that way unless it's really necessary 
 
+
 ## II - Swarm Setup
 
-Once our prerequisites and its dependencies are installed, we can proceed to set our swarm up. For this, we will run the swarm-setup.sh script. This script executes the following commands:
+### Proxy Setup
 
-    # DigitalOcean variables
-    DIGITALOCEAN_ACCESS_TOKEN=<YOUR_TOKEN>
-    DIGITALOCEAN_PRIVATE_NETWORKING=true
-    DIGITALOCEAN_IMAGE=debian-8-x64
+Connect to the Manager node by SSH, and once logged in, install nginx:
 
-    # Creation of consul host
-    docker-machine create -d digitalocean consul
+	sudo apt-get install nginx
 
-    # IP address of the consul host for later use
-    KV_IP=$(docker-machine ssh consul 'ifconfig eth1 | grep "inet addr:" | cut -d: -f2 | cut -d" " -f1')
+Once installed, replace the /etc/nginx/nginx.conf file for the one provided on this repository.
 
-    # Consul configuration
-    eval $(docker-machine env consul)
+>NOTE: Remember to edit the file and replace the <MANAGER-IP-ADDRESS> placeholders with the IP address of your manager node. 
 
-    docker run -d \
-      -p ${KV_IP}:8500:8500 \
-      -h consul \
-      --restart always \
-      gliderlabs/consul-server -bootstrap
+Save the file, and reload nginx 
 
+	nginx -s reload
 
-    # Creation of the Master Node
-    docker-machine create -d digitalocean --swarm --swarm-master --swarm-discovery="consul://${KV_IP}:8500" \
-    --engine-opt="cluster-store=consul://${KV_IP}:8500" --engine-opt="cluster-advertise=eth1:2376" \
-    master
+Create a file named "/var/live" and write "blue" to it:
 
-    # Master node IP for registrator
-    MASTER_IP=$(docker-machine ssh master 'ifconfig eth1 | grep "inet addr:" | cut -d: -f2 | cut -d" " -f1')
+	echo "blue" > /var/live
 
-    # Creation of the Slave Node
-    docker-machine create -d digitalocean --swarm --swarm-discovery="consul://${KV_IP}:8500" \
-      --engine-opt="cluster-store=consul://${KV_IP}:8500" --engine-opt="cluster-advertise=eth1:2376" \
-      slave
+Whenever we start the VM or toggle between blue and green, this will tell us which service is currently **LIVE**.
 
-    # Slave Node IP for registrator
-    SLAVE_IP=$(docker-machine ssh slave 'ifconfig eth1 | grep "inet addr:" | cut -d: -f2 | cut -d" " -f1')
+### Consul-template setup
 
-    # Master Node configuration
-    eval $(docker-machine env master)
+Connect to the Manager node by SSH, and once logged in, install consul-template:
 
-    docker run -d --name=registrator -h ${MASTER_IP} --volume=/var/run/docker.sock:/tmp/docker.sock \
-      gliderlabs/registrator:v6 consul://${KV_IP}:8500
+	wget https://releases.hashicorp.com/consul-template/0.14.0/consul-template_0.14.0_linux_amd64.zip
+	unzip consul-template_0.14.0_linux_amd64.zip -d /usr/local/bin
+	chmod +x /usr/local/bin/consul-template
 
-    #Slave Node configuration
-    eval $(docker-machine env slave)
+Copy the default.ctmpl file provided on this repo to /templates/default.ctmpl
 
-    docker run -d --name=registrator -h ${SLAVE_IP} --volume=/var/run/docker.sock:/tmp/docker.sock \
-      gliderlabs/registrator:v6 consul://${KV_IP}:8500
+>NOTE: Remember to edit the file and replace the <MANAGER-IP-ADDRESS> placeholders with the IP address of your manager node. 
+
+>>>>> STOPPED HERE 
+
+### Setting up the Manager node
+
+Connect to the Manager node by SSH, and once logged in, run the following command:
+
+	docker swarm init --advertise-addr <MANAGER-IP-ADDRESS>
+
+If successfully executed, you will get the following output:
 
 
-    # Print Swarm status
-    eval $(docker-machine env -swarm master)
-    docker-machine ls
+>Swarm initialized: current node () is now a manager.
+>
+>To add a worker to this swarm, run the following command:
+>
+>    docker swarm join \
+>    --token <TOKEN> \
+>    <MANGER-IP-ADDRESS>:2377
+>
+>To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+Save the _first_ command for later use, as we will be using it on each of the worker nodes.
 
 
+### Setting up the worker nodes
 
-## III - Blue, Green and Proxy Setup
+Exit the Manager, SSH into the _first_ worker node, and run the command we saved earlier:
 
-With our swarm almost ready to go, we now need to provide it with our app and proxy containers.
+	docker swarm join \
+	--token <TOKEN> \
+	<MANGER-IP-ADDRESS>:2377
 
-As the consul machine is already done, we will proceed with the Master and Slave nodes.
+>NOTE: The placeholders will instead be the token and IP address of the manager node.
 
-### The Master Node 
+After a few seconds, you will get the following message, which means the node was added to our swarm successfully:
 
-- **GitHub source repo** - https://github.com/Korrd/challenge-img-bluegreen
-- **Docker hub image** - https://hub.docker.com/r/korrd2/blue-green/
+>This node joined a swarm as a worker.
 
-The master node is just an nginx proxy that handles traffic redirection and switching logic. More info about it can be found on its associated GitHub repository.
+**Repeat this step on the second worker node**
 
-We have used the registrator image to register our running docker images to consul. Consul-template will read these and create custom configuration for nginx. So we need to create a template for it, which we will call default.ctmpl and can be found
+### Checking the nodes status
 
-### The Slave Node
+SSH into the machine where the manager node runs and run the following command to see the worker nodes' status:
+
+	docker node ls 
+
+You will see output similar to the following, which means our swarm is running as expected:
+
+>ID                           HOSTNAME  STATUS  AVAILABILITY  MANAGER STATUS
+>03g1y59jwfg7cf99w4lt0f662    worker2   Ready   Active
+>9j68exjopxe7wfl6yuxml7a7j    worker1   Ready   Active
+>dxn1zf6l61qsb1josjja83ngz *  manager1  Ready   Active        Leader
+
+
+## III - Services' Deployment
+
+Now that our swarm is up and running, we will Deploy our services. For the pruposes of this article we will be using the following app, which can be found here:
 
  - **GitHub source repo** - https://github.com/Korrd/challenge-bg-scroll
  - **Docker hub image** - https://hub.docker.com/r/korrd2/challenge-bg-scroll/
 
-This is the Dockerization of a **node.js app** that demonstrates how to keep a viewport scrollbar position synchronized across all users currently viewing it by using **socket.io**. Whenever someone vertically scrolls the document, all other users get theirs scrolled to that position too. Also, whenever a new user joins, his viewport is synced to its last known position by the server.
-More info regarding this app, and a walkthrough, can be read on its GitHub repository.
-
-### Our Docker Compose File
-
-Time to write our docker compose file, where we specify our services, networks, images, containers, and everything we require to set our site up.
+SSH into the Manager node, and run the following commands:
 
 
-    version: '2'
+	docker service create --workdir="/app" --publish 3000:3000 --name="blue-service" korrd2/challenge-bg-scroll:1.0.2
+	docker service create --workdir="/app" --publish 3001:3000 --name="green-service" korrd2/challenge-bg-scroll:1.0.2
 
-    services:
-      bg:
-        image: korrd2/blue-green:0.0.1
-        container_name: bg
-        ports:
-          - "80:80"
-          - "8080:8080"
-        environment:
-          - constraint:node==master
-          - CONSUL_URL=${KV_IP}:8500
-          - BLUE_NAME=blue
-          - GREEN_NAME=green
-          - LIVE=blue
-        depends_on:
-          - green
-          - blue
-        networks:
-          - blue-green
+This will create two services, each running identical copies of our app.
 
-      blue:
-        image: korrd2/challenge-bg-scroll:1.0.1
-        ports:
-          - "80"
-        environment:
-          - SERVICE_80_NAME=blue
-        networks:
-          - blue-green
+Run the following command in order to see its status:
 
-      green:
-        image: korrd2/challenge-bg-scroll:1.0.1
-        ports:
-          - "80"
-        environment:
-          - SERVICE_80_NAME=green
-        networks:
-          - blue-green
+	docker service ls
 
-    networks:
-      blue-green:
-        driver: overlay
-    
-----------
+You will get output similar to the following, which means our services are running as expected: 
+
+>ID            NAME          MODE        REPLICAS  IMAGE
+>6dkch7ddr3mz  scroll-green  replicated  1/1       korrd2/challenge-bg-scroll:1.0.1
+>84f44rcqmaqb  scroll-blue   replicated  1/1       korrd2/challenge-bg-scroll:1.0.1
+
 
 # Control of the System
 
-Once up and running, controlling our system is quite easy. Scripts are provided by this solution that take care of it with a single command. I am going to enumerate and explain them one by one.
+## Updating our app
 
-### Deployment
+## Checking the health of the service
 
-In order to deploy an app, all we have to do is to edit the _image_ section from one of the services on the _docker-compose.yml_ file (either blue or green, not bg, the proxy). After that, we just run the script related to that service. 
+## Determining the LIVE instance
 
-The **deploy-blue.sh** script will perform an update of the blue service, while the **deploy-green.sh** script will do the same for the green service.
+## Switching between LIVE and IDLE instances
 
->NOTE: Both scripts will first check whether you are deploying to the LIVE or the IDLE instance. If deployment to the LIVE one is detected, the script will warn you and prompt you to continue, the default answer being **NO**. 
+## Stopping the swarm
 
-### Determining the LIVE instance
-
-In order to do so, we just run the **get-live-environment.sh** script. It will connect to the swarm and return the value for the LIVE instance. 
-
->NOTE: If the instance is undefined, it will issue a warning.
-
-### Switching between LIVE and IDLE instances
-
-There are two scripts that can do that for you. These are **switch-blue.sh** and **switch-green.sh**. Those will Force the proxy to set the live environment to their respective instances.
-
-Also, there is a script that will automatically toggle the instances. It is called **toggle-bluegreen.sh**, and will connect to the swarm, determine which one is the LIVE instance, then switch them. 
-
->NOTE: If the instance is undefined, it will issue a warning.
-
-### Checking the health of the service
-
-For this, we have the **healthcheck.sh** script. It checks whether our services are working, doing poorly, or not working at all. It prints their status on screen and also writes it down to a logfile located on **/var/log/challenge**. 
-
->NOTE: This health check is quite rudimentary, and was written only for the purpose of demonstrating how to check our services are working. It will fail should the internet connection between you and the host were interrupted. Response time can also be affected by your network traffic.
+## Disposing of the swarm
 
 
->A more robust check would involve a series of services running on each container, proxy, and outside our swarm. 
-
-
-> - The one running on the container would send an all-is-well signal at an interval either to a #Slack channel, email account or destination of your choice. Call it a dead-man switch. Whenever the signal stops coming, we know there is a problem with that container.
-> - The one running on the proxy would check whether BLUE and GREEN are responding, and report any failure to one of the channels. It too should also send its own all-is-well signal so we know if it dies. 
-> - The one running outside the cluster would check against it and inform us in case of a timeout. (This one would be similar to our current script).
-
-> That way, we can be sure that
-
-> - a) Whenever we have a failure anywhere on our swarm, it would let us know.
-> - b) If one of the health check services were to fail, the all-is-well signal would stop, hence it would not fail silently (like what happened to the people at GitLab with their backup system). 
- 
-
-### Stopping the swarm
-
-The **stop-services.sh** script takes care of that. It connects to the swarm and stops it all. It will prompt you before running, just in case 
-it got run accidentally.
-
-### Disposing of the swarm
-
-I wrote no script for such action, but it can be done after stopping the swarm by executing the following commands:
-
-    docker-machine stop consul master slave
-    docker-machine rm consul master slave
 
 ----------
 
-## Bibliographic Material
-
-**I got the idea of using the Blue/Green technique by reading the following articles**
+# Bibliographic Material
 
  - _BlueGreenDeployment, Martin Fowler_ - https://martinfowler.com/bliki/BlueGreenDeployment.html
  - _Using Blue-Green Deployment to Reduce Downtime and Risk_ - https://docs.cloudfoundry.org/devguide/deploy-apps/blue-green.html
@@ -367,8 +291,6 @@ I wrote no script for such action, but it can be done after stopping the swarm b
  - _Docker flow_ - https://technologyconversations.com/2016/04/18/docker-flow/
 
  - _Research into doing it with Jenkins_ - https://technologyconversations.com/2015/12/08/blue-green-deployment-to-docker-swarm-with-jenkins-workflow-plugin/
-
-**Regarding Docker, I read the following articles**
 
  - _Best practices for writing Dockerfiles_ - https://docs.docker.com/engine/userguide/eng-image/dockerfile_best-practices/
  - _Installing Docker Machine_ - https://docs.docker.com/machine/install-machine/#installing-machine-directly
@@ -393,8 +315,6 @@ I wrote no script for such action, but it can be done after stopping the swarm b
 
  - _Automated Builds_ - https://docs.docker.com/docker-cloud/builds/automated-build/
 
-**Also, articles related to various things**
-
  - _Reload a Linux users-group assignments without logging out_ - https://superuser.com/questions/272061/reload-a-linux-users-group-assignments-without-logging-out
 
  - _GitLab postmortem, or as I like to call it: "Criminal Negligence: how all went to hell because we didn't check that our backup mechanisms were working properly, nor we cared to run a simulacrum of our disaster recovery procedure in order to determine if it did work as intended"_ - https://about.gitlab.com/2017/02/10/postmortem-of-database-outage-of-january-31/
@@ -409,13 +329,25 @@ I wrote no script for such action, but it can be done after stopping the swarm b
 
  - _Bash seems not to like floating point numbers..._ - http://stackoverflow.com/questions/19597962/bash-illegal-number
 
+ - _Swarm mode overview_ - https://docs.docker.com/engine/swarm/
+
+ - _Swarm mode key concepts_ - https://docs.docker.com/engine/swarm/key-concepts/
+
+ - _Swarm mode tutorial_ - https://docs.docker.com/engine/swarm/swarm-tutorial/
+
+ - _Blue green with swarm and Jenkins_ - https://technologyconversations.com/2015/07/02/scaling-to-infinity-with-docker-swarm-docker-compose-and-consul-part-34-blue-green-deployment-automation-and-self-healing-procedure/
+
+ - _Load-balancing with nginx_ - https://www.nginx.com/resources/admin-guide/load-balancer/
+
+ - _Nginx reload with no downtime_ - http://serverfault.com/questions/378581/nginx-config-reload-without-downtime
+
 ----------
 
-## Afterthoughts
+# Afterthoughts
 
 As you can see, Deployment is now way easier using the blue/green technique. Also almost totally painless and very fast.
 
-Add some Ansible/Jenkins magic to this solution, and you can have a fully automated CI/CD pipeline running in no time! Nowadays, the path to the MVP is almost a joyride.
+Add some Ansible/Jenkins magic to this solution, and you can have a fully automated CI/CD pipeline running in no time. Nowadays, the path to the MVP is almost a joyride.
 
 On a more personal note, this was quite the journey. Before starting, I saw myself as a knowledgeable sysop, yet diving into this I discovered a whole new world I wasn't previously aware of. 
 
@@ -423,10 +355,21 @@ I still have a lot to learn. I even had too google things I had forgot, like bas
 
 There was no learning curve here. It was more like... an instantaneous jump from there to here (if you don't believe me, see the bibliography section, it's quite large!). 
 
+----------
+
+# Backlog
+
+ - Finish writing consul setup instructions
+ - Add control scripts
+ - Write a script that automates proxy and consul setup (too messy atm)
+ - Check document for consistency, typos, etc
+ - Test it again from scratch
+ - Release
 
 ----------
 
-## Backlog
+# Updates
 
- - Finish section III - _Blue, Green and Proxy Setup_, as it does not yet explains how the nginx config is generated.
- - Check for consistency, typos, etc
+## Update 2017-03-17
+
+>The solution got modified to run as a swarm using docker swarm. It is now much more simple and less error-prone than the previous version, and also uses the latest technology offered by Docker as of this date.
