@@ -233,8 +233,8 @@ Now that our swarm is up and running, we will Deploy our services. For the prupo
 SSH into the Manager node, and run the following commands:
 
 
-	docker service create --workdir="/app" --publish 3000:3000 --name="blue-service" korrd2/challenge-bg-scroll:1.0.2
-	docker service create --workdir="/app" --publish 3001:3000 --name="green-service" korrd2/challenge-bg-scroll:1.0.2
+	docker service create --workdir="/app" --publish 3000:3000 --name="blue-service" korrd2/challenge-bg-scroll:1.0.3
+	docker service create --workdir="/app" --publish 3001:3000 --name="green-service" korrd2/challenge-bg-scroll:1.0.4
 
 This will create two services, each running identical copies of our app.
 
@@ -245,8 +245,8 @@ Run the following command in order to see its status:
 You will get output similar to the following, which means our services are running as expected: 
 
 >ID            NAME          MODE        REPLICAS  IMAGE
->6dkch7ddr3mz  scroll-green  replicated  1/1       korrd2/challenge-bg-scroll:1.0.1
->84f44rcqmaqb  scroll-blue   replicated  1/1       korrd2/challenge-bg-scroll:1.0.1
+>6dkch7ddr3mz  scroll-green  replicated  1/1       korrd2/challenge-bg-scroll:1.0.4
+>84f44rcqmaqb  scroll-blue   replicated  1/1       korrd2/challenge-bg-scroll:1.0.3
 
 
 # Control of the System
