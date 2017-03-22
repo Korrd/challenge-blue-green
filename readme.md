@@ -399,7 +399,7 @@ On a more personal note, this was quite the journey. Before starting, I saw myse
 
 > - Write a script to automate installation and setup of the swarm
 > - Improve control scripts to consider the result of each command before proceeding to the next one
-
+> - Add a 3rd service, where the latest version of the app would be autodeployed for testing purposes whenever someone does a git push.
 
 ----------
 
