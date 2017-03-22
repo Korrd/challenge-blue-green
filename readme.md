@@ -180,15 +180,15 @@ Connect to the Manager node by SSH, and once logged in, run the following comman
 
 If successfully executed, you will get the following output:
 
->Swarm initialized: current node () is now a manager.
->
->To add a worker to this swarm, run the following command:
->
->    docker swarm join \
->    --token <TOKEN> \
->    <MANGER-IP-ADDRESS>:2377
->
->To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+	Swarm initialized: current node () is now a manager.
+
+	To add a worker to this swarm, run the following command:
+
+	    docker swarm join \
+	    --token <TOKEN> \
+	    <MANGER-IP-ADDRESS>:2377
+
+	To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
 
 Save the _first_ command for later use, as we will be using it on each of the worker nodes.
 
@@ -216,10 +216,10 @@ SSH into the machine where the manager node runs and run the following command t
 
 You will see output similar to the following, which means our swarm is running as expected:
 
->ID                           HOSTNAME  STATUS  AVAILABILITY  MANAGER STATUS
->03g1y59jwfg7cf99w4lt0f662    worker2   Ready   Active
->9j68exjopxe7wfl6yuxml7a7j    worker1   Ready   Active
->dxn1zf6l61qsb1josjja83ngz *  manager1  Ready   Active        Leader
+	ID                           HOSTNAME  STATUS  AVAILABILITY  MANAGER STATUS
+	03g1y59jwfg7cf99w4lt0f662    worker2   Ready   Active
+	9j68exjopxe7wfl6yuxml7a7j    worker1   Ready   Active
+	dxn1zf6l61qsb1josjja83ngz *  manager1  Ready   Active        Leader
 
 
 ## III - Services' Deployment
@@ -243,9 +243,9 @@ Run the following command in order to see its status:
 
 You will get output similar to the following, which means our services are running as expected: 
 
->ID            NAME          MODE        REPLICAS  IMAGE
->6dkch7ddr3mz  scroll-green  replicated  1/1       korrd2/challenge-bg-scroll:1.0.4
->84f44rcqmaqb  scroll-blue   replicated  1/1       korrd2/challenge-bg-scroll:1.0.3
+	ID            NAME          MODE        REPLICAS  IMAGE
+	6dkch7ddr3mz  scroll-green  replicated  1/1       korrd2/challenge-bg-scroll:1.0.4
+	84f44rcqmaqb  scroll-blue   replicated  1/1       korrd2/challenge-bg-scroll:1.0.3
 
 
 # Control of the System
