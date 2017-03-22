@@ -247,6 +247,7 @@ You will get output similar to the following, which means our services are runni
 	6dkch7ddr3mz  scroll-green  replicated  1/1       korrd2/challenge-bg-scroll:1.0.4
 	84f44rcqmaqb  scroll-blue   replicated  1/1       korrd2/challenge-bg-scroll:1.0.3
 
+**At this point, if you navigate to http://<MANGER-IP-ADDRESS> or http://<MANGER-IP-ADDRESS>:8080, you will see both the LIVE and IDLE services up and running.**
 
 # Control of the System
 
