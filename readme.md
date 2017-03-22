@@ -114,7 +114,7 @@ Once app testing is complete, and the newly updated version is deemed fit for pr
 
 ## I - Docker Installation
 
-First, we are going to install docker and its associated components. For this, run the **_docker-engine-install.sh_** script _on manager1, worker1 and worker2_. This script executes the following commands:
+First, we are going to install docker and its associated components. For this, run the **_docker-install.sh_** script (located on the setup folder) _on manager1, worker1 and worker2_. This script executes the following commands:
 
 >NOTE: Remember this was made for **Ubuntu Xenial**. If you are running a different version on the VM's, or not using linux altogether, this script won't work for you!
 
@@ -151,15 +151,7 @@ Connect to the Manager node by SSH, and once logged in, install nginx:
 
 	sudo apt-get install nginx
 
-Once installed, replace the /etc/nginx/nginx.conf file for the one provided on this repository.
-
->NOTE: Remember to edit the file and replace the <MANAGER-IP-ADDRESS> placeholders with the IP address of your manager node. 
-
-Save the file, and reload nginx 
-
-	nginx -s reload
-
-Create a file named "/var/live" and write "blue" to it:
+Once installed, create a file named "/var/live" and write "blue" to it:
 
 	echo "blue" > /var/live
 
@@ -167,32 +159,18 @@ Whenever we start the VM or toggle between blue and green, this will tell us whi
 It will also be used by consul in order to write the nginx config file.
 
 
-
-
 ### Consul-template setup
 
-Connect to the Manager node by SSH, and once logged in, install consul-template:
+Connect to the Manager node by SSH, and once logged in, install consul-template by running the **_consul-install.sh_** script (located on the setup folder). This script executes the following commands:
 
 	wget https://releases.hashicorp.com/consul-template/0.18.0/consul-template_0.18.0_linux_amd64.zip
 	unzip consul-template_0.18.0_linux_amd64.zip -d /usr/local/bin
 	chmod +x /usr/local/bin/consul-template
+    mkdir /templates
 
-Create /templates directory and copy the default.ctmpl file provided on this repo to '/templates/default.ctmpl'. 
+Once done, open default.ctmpl and replace the <MANAGER-IP-ADDRESS> placeholders with the IP address of your manager node, then copy this file to /templates
 
->NOTE: Before copying, edit it and replace the <MANAGER-IP-ADDRESS> placeholders with the IP address of your manager node. 
-
-
-
-
-
-
-
-
-
-
-
-
-
+In order to set nginx to its initial value, run the **toggle.sh_** script with blue as a parameter. This will command consul to write the new nginx configuration, and then reload nginx so the changes take effect.
 
 
 ### Setting up the Manager node
@@ -202,7 +180,6 @@ Connect to the Manager node by SSH, and once logged in, run the following comman
 	docker swarm init --advertise-addr <MANAGER-IP-ADDRESS>
 
 If successfully executed, you will get the following output:
-
 
 >Swarm initialized: current node () is now a manager.
 >
@@ -215,7 +192,6 @@ If successfully executed, you will get the following output:
 >To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
 
 Save the _first_ command for later use, as we will be using it on each of the worker nodes.
-
 
 ### Setting up the worker nodes
 
@@ -275,19 +251,64 @@ You will get output similar to the following, which means our services are runni
 
 # Control of the System
 
+Once up and running, controlling our system is quite easy. Scripts are provided by this solution that take care of it with a single command. I am going to enumerate and explain them one by one.
+
 ## Updating our app
+
+In order to update our app, run either **_deploy-blue.sh_** or **_deploy-green.sh_** using the image tag as parameter. 
+
+>NOTE: Both scripts will first check whether you are deploying to the LIVE or the IDLE service. If deployment to LIVE is detected, the script will warn you and prompt you to continue, the default answer being **NO**. 
+
 
 ## Checking the health of the service
 
+For this, we have the **healthcheck.sh** script. It checks whether our services are working, doing poorly, or not working at all. It prints their status on screen and also writes it down to a logfile located on **/var/log/challenge**. 
+
+>NOTE: This health check is quite rudimentary, and was written only for the purpose of demonstrating how to check our services are working. It will fail should the internet connection between you and the host were interrupted. Response time can also be affected by your network traffic.
+
+
+>A more robust check would involve a series of services running on each container, proxy, and outside our swarm. 
+
+
+> - The one running on the container would send an all-is-well signal at an interval either to a #Slack channel, email account or destination of your choice. Call it a dead-man switch. Whenever the signal stops coming, we know there is a problem with that container.
+> - The one running on the proxy would check whether BLUE and GREEN are responding, and report any failure to one of the channels. It too should also send its own all-is-well signal so we know if it dies. 
+> - The one running outside the cluster would check against it and inform us in case of a timeout. (This one would be similar to our current script).
+
+> That way, we can be sure that
+
+> - a) Whenever we have a failure anywhere on our swarm, it would let us know.
+> - b) If one of the health check services were to fail, the all-is-well signal would stop, hence it would not fail silently (like what happened to the people at GitLab with their backup system). 
+
+
 ## Determining the LIVE instance
+
+In order to do so, we just run the **get-live-service.sh** script. It will return the value of the LIVE instance. 
+
+>NOTE: If the instance is undefined, it will issue a warning.
+
+
 
 ## Switching between LIVE and IDLE instances
 
-## Stopping the swarm
+The **toggle.sh** script takes care of toggling **LIVE** and **IDLE**. Those will Force the proxy to set the live environment to their respective instances.
+
+>NOTE: If the instance is undefined, it will issue a warning.
+
+## Draining nodes
+
+Nodes can be drained with the following command:
+
+	docker node update --availability drain <NODE-ID>
+
+where <NODE-ID> is the name of the node we want to drain (eg. worker1, worker2, etc)
+
 
 ## Disposing of the swarm
 
+I wrote no script for such action, but it can be done after stopping the swarm by executing the following commands on the manager node:
 
+	docker service rm scroll-green
+	docker service rm scroll-blue
 
 ----------
 
@@ -363,26 +384,23 @@ As you can see, Deployment is now way easier using the blue/green technique. Als
 
 Add some Ansible/Jenkins magic to this solution, and you can have a fully automated CI/CD pipeline running in no time. Nowadays, the path to the MVP is almost a joyride.
 
-On a more personal note, this was quite the journey. Before starting, I saw myself as a knowledgeable sysop, yet diving into this I discovered a whole new world I wasn't previously aware of. 
-
-I still have a lot to learn. I even had too google things I had forgot, like bash not supporting floating point, and some cURL magic I hadn't used in ages.
-
-There was no learning curve here. It was more like... an instantaneous jump from there to here (if you don't believe me, see the bibliography section, it's quite large!). 
+On a more personal note, this was quite the journey. Before starting, I saw myself as a knowledgeable sysop, yet diving into this I discovered a whole new world I wasn't previously aware of. I'm already thinking on ways to improve this (quite basic) solution further.
 
 ----------
 
 # Backlog
 
- - Finish writing consul setup instructions
- - Add control scripts
- - Write a script that automates proxy and consul setup (too messy atm)
- - Check document for consistency, typos, etc
- - Test it again from scratch
- - Release
+> - Write a script to automate installation and setup of the swarm
+> - Improve control scripts to consider the result of each command before proceeding to the next one
+
 
 ----------
 
 # Updates
+
+## Update 2017-03-22
+
+>Added control scripts and finished testing the solution. Also wrote the remaining entries on the readme file.
 
 ## Update 2017-03-17
 
