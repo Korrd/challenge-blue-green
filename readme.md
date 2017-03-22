@@ -83,13 +83,13 @@ In order to proceed with these instructions, you will first need to have:
 - TCP ports 3000 and 3001 for connecting our services
 - TCP ports 80 and 8080 on manager1
 
-**Those machines will require the following software installed**
+**The VM's require the following software installed**
 
-- Ubuntu 16.04 xenial, 64-bit on all machines 
+- Ubuntu 16.04 xenial, 64-bit on all machines
 - Docker Engine 1.12 or newer on all machines (I'm using the latest version)
-- Nginx on manager1
+- Nginx 1.10 or newer on manager1
 
-**Also, we need to assign fixed IP addresses to those machines. In this article, I will be using 192.168.2.10 for the proxy, 192.168.2.11 for the manager, 192.168.2.12 for the first worker and 192.168.2.13 for the second worker.**
+**Also, we need to assign fixed IP addresses to those machines. In this article, I will be using 192.168.2.11 for the manager/proxy, 192.168.2.12 for the first worker and 192.168.2.13 for the second worker.**
 
 ### 2. Local machine
 
@@ -99,9 +99,7 @@ Our local machine will require the latest version of Docker installed, and also 
 
 # How does this implementation work?
 
-**Using docker swarm**, we will create a swarm consisting of a manager and two workers. On it, we will be running two services listening on different ports. These will be our Blue and Green.
-
-Each service will be running identical versions of our app. 
+**Using docker swarm**, we will create a swarm consisting of a manager and two workers. On it, we will be running two services listening on different ports. These will be our Blue and Green. Each service will be running identical versions of our app. 
 
 The swarm will be behind an **nginx proxy** which will be exposed to the internet. This proxy will determine which service is **LIVE** and which is **IDLE**, and will route all incoming traffic on port 80 to our **LIVE** serice, and all traffic on port 8080 to the **IDLE** service.
 
@@ -116,7 +114,7 @@ Once app testing is complete, and the newly updated version is deemed fit for pr
 
 ## I - Docker Installation
 
-First, we are going to install docker and its associated components. For this, we need to run the **_docker-engine-install.sh_** script _on manager1, worker1 and worker2_. This script executes the following commands:
+First, we are going to install docker and its associated components. For this, run the **_docker-engine-install.sh_** script _on manager1, worker1 and worker2_. This script executes the following commands:
 
 >NOTE: Remember this was made for **Ubuntu Xenial**. If you are running a different version on the VM's, or not using linux altogether, this script won't work for you!
 
@@ -166,20 +164,36 @@ Create a file named "/var/live" and write "blue" to it:
 	echo "blue" > /var/live
 
 Whenever we start the VM or toggle between blue and green, this will tell us which service is currently **LIVE**.
+It will also be used by consul in order to write the nginx config file.
+
+
+
 
 ### Consul-template setup
 
 Connect to the Manager node by SSH, and once logged in, install consul-template:
 
-	wget https://releases.hashicorp.com/consul-template/0.14.0/consul-template_0.14.0_linux_amd64.zip
-	unzip consul-template_0.14.0_linux_amd64.zip -d /usr/local/bin
+	wget https://releases.hashicorp.com/consul-template/0.18.0/consul-template_0.18.0_linux_amd64.zip
+	unzip consul-template_0.18.0_linux_amd64.zip -d /usr/local/bin
 	chmod +x /usr/local/bin/consul-template
 
-Copy the default.ctmpl file provided on this repo to /templates/default.ctmpl
+Create /templates directory and copy the default.ctmpl file provided on this repo to '/templates/default.ctmpl'. 
 
->NOTE: Remember to edit the file and replace the <MANAGER-IP-ADDRESS> placeholders with the IP address of your manager node. 
+>NOTE: Before copying, edit it and replace the <MANAGER-IP-ADDRESS> placeholders with the IP address of your manager node. 
 
->>>>> STOPPED HERE 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Setting up the Manager node
 
