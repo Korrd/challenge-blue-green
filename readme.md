@@ -10,17 +10,16 @@
  - **Prerequisites**
  - **How does this implementation work?**
  - **Installation and swarm setup**
-  - _I - Docker Installation_
-  - _II - Swarm Setup_
-  - _III - Services' Deployment_
-  - _IV - Proxy Setup_
+   - _I - Docker Installation_
+   - _II - Swarm Setup_
+   - _III - Services' Deployment_
  - **Control of the System**
-  - Updating our app
-  - Checking the health of the service
-  - Determining the LIVE instance
-  - Switching between LIVE and IDLE instances
-  - Stopping the swarm
-  - Disposing of the swarm
+   - Updating our app
+   - Checking the health of the service
+   - Determining the LIVE instance
+   - Switching between LIVE and IDLE instances
+   - Draining a node
+   - Disposing of the services
  - **Research Material**
  - **Afterthoughts**
 
@@ -260,6 +259,14 @@ In order to update our app, run either **_deploy-blue.sh_** or **_deploy-green.s
 >NOTE: Both scripts will first check whether you are deploying to the LIVE or the IDLE service. If deployment to LIVE is detected, the script will warn you and prompt you to continue, the default answer being **NO**. 
 
 
+## Scaling our services
+
+In order to scale our services run either **_scale-blue.sh_** or **_scale-green.sh_**, to change the desired state of the service running in the swarm. These scripts take a number as a parameter, which will determine its size.
+
+Run the following command to see the updated task list:
+
+	docker service ps <SERVICE-ID>
+
 ## Checking the health of the service
 
 For this, we have the **healthcheck.sh** script. It checks whether our services are working, doing poorly, or not working at all. It prints their status on screen and also writes it down to a logfile located on **/var/log/challenge**. 
@@ -287,14 +294,13 @@ In order to do so, we just run the **get-live-service.sh** script. It will retur
 >NOTE: If the instance is undefined, it will issue a warning.
 
 
-
 ## Switching between LIVE and IDLE instances
 
 The **toggle.sh** script takes care of toggling **LIVE** and **IDLE**. Those will Force the proxy to set the live environment to their respective instances.
 
 >NOTE: If the instance is undefined, it will issue a warning.
 
-## Draining nodes
+## Draining a node
 
 Nodes can be drained with the following command:
 
@@ -303,7 +309,7 @@ Nodes can be drained with the following command:
 where <NODE-ID> is the name of the node we want to drain (eg. worker1, worker2, etc)
 
 
-## Disposing of the swarm
+## Disposing of the services
 
 I wrote no script for such action, but it can be done after stopping the swarm by executing the following commands on the manager node:
 
