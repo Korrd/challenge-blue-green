@@ -1,5 +1,3 @@
-{{$blue  := env "BLUE_NAME"}}
-{{$green := env "GREEN_NAME"}}
 {{$live  := file "/var/live"}}
 
 worker_processes 1;
