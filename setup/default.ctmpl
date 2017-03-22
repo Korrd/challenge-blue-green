@@ -9,12 +9,12 @@ events {
 http {
   upstream blue {
     least_conn;
-    server <MANAGER-IP-ADDRESS>:3000 max_fails=3 fail_timeout=60 weight=1;
+    server <MANAGER-IP-ADDRESS>:3000 max_fails=3 fail_timeout=30;
   }
 
   upstream green {
     least_conn;
-    server <MANAGER-IP-ADDRESS>:3001 max_fails=3 fail_timeout=60 weight=1;
+    server <MANAGER-IP-ADDRESS>:3001 max_fails=3 fail_timeout=30;
   }
 
   server {
