@@ -13,7 +13,7 @@
 if [ $# -eq 0 ];
   then
     echo "No arguments provided. Usage: "
-    echo "sh deploy-blue.sh [image-tag]"
+    echo "sh deploy-green.sh [image-tag]"
     echo "Aborted"
     exit 1
 else
@@ -41,9 +41,9 @@ else
 
 	elif [ "$live" = "blue" ]; then
 	  echo "LIVE service is $(tput setaf 2)"$live"$(tput sgr 0)"
-	  echo "Deploying to $(tput setaf 4)GREEN...$(tput sgr 0)"
+	  echo "Deploying to $(tput setaf 4)BLUE...$(tput sgr 0)"
 
-		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
+		docker service update --image korrd2/challenge-bg-scroll:$1 blue-service
 
 	  echo "Finished!"
 
