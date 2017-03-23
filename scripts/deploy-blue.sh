@@ -20,7 +20,7 @@ else
 	echo "Determining live environment..."
 	live=$(cat /var/live)
 
-	if [ "$live" = "green" ]; then
+	if [ "$live" = "blue" ]; then
 	  echo "LIVE service is $(tput setaf 4)"$live"$(tput sgr 0)"
 
 	  echo "$(tput setaf 1) **** WARNING: YOU ARE DEPLOYING TO THE LIVE SERVICE!!!! ****"
@@ -30,7 +30,7 @@ else
 
 		echo "Deployment in progress..."
 
-		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
+		docker service update --image korrd2/challenge-bg-scroll:$1 blue-service
 
 		echo "Finished!"
 
@@ -41,9 +41,9 @@ else
 
 	elif [ "$live" = "blue" ]; then
 	  echo "LIVE service is $(tput setaf 2)"$live"$(tput sgr 0)"
-	  echo "Deploying to $(tput setaf 4)GREEN...$(tput sgr 0)"
+	  echo "Deploying to $(tput setaf 4)BLUE...$(tput sgr 0)"
 
-		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
+		docker service update --image korrd2/challenge-bg-scroll:$1 blue-service
 
 	  echo "Finished!"
 
