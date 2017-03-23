@@ -30,7 +30,7 @@ else
 
 		echo "Deployment in progress..."
 
-		docker service update --image korrd2/challenge-bg-scroll:$1 scroll-green
+		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
 
 		echo "Finished!"
 
@@ -43,7 +43,7 @@ else
 	  echo "LIVE service is $(tput setaf 2)"$live"$(tput sgr 0)"
 	  echo "Deploying to $(tput setaf 4)GREEN...$(tput sgr 0)"
 
-		docker service update --image korrd2/challenge-bg-scroll:$1 scroll-green
+		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
 
 	  echo "Finished!"
 
