@@ -256,6 +256,8 @@ You will get output similar to the following, which means our services are runni
 
 Once up and running, controlling our system is quite easy. Scripts are provided by this solution that take care of it with a single command. I am going to enumerate and explain them one by one.
 
+>NOTE: These scripts are meant to be run on the manager node.
+
 ## Updating our app
 
 In order to update our app, run either **_deploy-blue.sh_** or **_deploy-green.sh_** using the image tag as parameter. 
