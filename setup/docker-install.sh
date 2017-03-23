@@ -22,5 +22,5 @@ cp /tmp/docker-machine /usr/local/bin/docker-machine
 # Appending docker to proper user group, so we can run it without sudo
 usermod -aG docker $(whoami)
 
-echo "Done. If you want to run docker without sudo, you need to log off and back in so usergroups are updated.
+echo "Done. If you want to run docker without sudo, you need to log off and back in so usergroups are updated."
 
