@@ -21,7 +21,7 @@ else
 	live=$(cat /var/live)
 
 	if [ "$live" = "green" ]; then
-	  echo "LIVE service is $(tput setaf 4)"$live"$(tput sgr 0)"
+	  echo "LIVE service is $(tput setaf 2)"$live"$(tput sgr 0)"
 
 	  echo "$(tput setaf 1) **** WARNING: YOU ARE DEPLOYING TO THE LIVE SERVICE!!!! ****"
 	  read -p "Are you sure you want to continue? <y/N>$(tput sgr 0)" prompt
@@ -40,10 +40,10 @@ else
 	  fi
 
 	elif [ "$live" = "blue" ]; then
-	  echo "LIVE service is $(tput setaf 2)"$live"$(tput sgr 0)"
-	  echo "Deploying to $(tput setaf 4)BLUE...$(tput sgr 0)"
+	  echo "LIVE service is $(tput setaf 4)"$live"$(tput sgr 0)"
+	  echo "Deploying to $(tput setaf 2)GREEN...$(tput sgr 0)"
 
-		docker service update --image korrd2/challenge-bg-scroll:$1 blue-service
+		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
 
 	  echo "Finished!"
 
