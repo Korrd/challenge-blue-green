@@ -16,7 +16,7 @@ if [ $# -eq 0 ];
     echo "Aborted"
     exit 1
 else
-	docker service scale scroll-blue="$1"
+	docker service scale blue-service="$1"
 fi
 
 # *** EOF ***
