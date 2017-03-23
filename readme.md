@@ -262,7 +262,7 @@ Once up and running, controlling our system is quite easy. Scripts are provided 
 
 In order to update our app, run either **_deploy-blue.sh_** or **_deploy-green.sh_** using the image tag as parameter. 
 
->NOTE: Both scripts will first check whether you are deploying to the LIVE or the IDLE service. If deployment to LIVE is detected, the script will warn you and prompt you to continue, the default answer being **NO**. 
+>NOTE: Both scripts will first check whether you are deploying to the LIVE or the IDLE service. If deployment to LIVE is detected, the script will abort. 
 
 
 ## Scaling our services
