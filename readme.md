@@ -245,8 +245,8 @@ Run the following command in order to see its status:
 You will get output similar to the following, which means our services are running as expected: 
 
 	ID            NAME          MODE        REPLICAS  IMAGE
-	6dkch7ddr3mz  scroll-green  replicated  1/1       korrd2/challenge-bg-scroll:1.0.4
-	84f44rcqmaqb  scroll-blue   replicated  1/1       korrd2/challenge-bg-scroll:1.0.3
+	6dkch7ddr3mz  blue-service  replicated  1/1       korrd2/challenge-bg-scroll:1.0.4
+	84f44rcqmaqb  green-service   replicated  1/1       korrd2/challenge-bg-scroll:1.0.3
 
 
 
@@ -319,8 +319,8 @@ where NODE-ID is the name of the node we want to drain (eg. worker1, worker2, et
 
 I wrote no script for such action, but it can be done after stopping the swarm by executing the following commands on the manager node:
 
-	docker service rm scroll-green
-	docker service rm scroll-blue
+	docker service rm blue-service
+	docker service rm green-service
 
 ----------
 
