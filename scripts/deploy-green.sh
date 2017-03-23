@@ -24,20 +24,8 @@ else
 	  echo "LIVE service is $(tput setaf 2)"$live"$(tput sgr 0)"
 
 	  echo "$(tput setaf 1) **** WARNING: YOU ARE DEPLOYING TO THE LIVE SERVICE!!!! ****"
-	  read -p "Are you sure you want to continue? <y/N>$(tput sgr 0)" prompt
-
-	  if [[ $prompt == "y" || $prompt == "Y" || $prompt == "yes" || $prompt == "Yes" ]]; then
-
-		echo "Deployment in progress..."
-
-		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
-
-		echo "Finished!"
-
-	  else
-		echo "Deployment aborted!"
-		exit 1
-	  fi
+	  echo "Deployment aborted!$(tput sgr 0)"
+	  exit 1
 
 	elif [ "$live" = "blue" ]; then
 	  echo "LIVE service is $(tput setaf 4)"$live"$(tput sgr 0)"
