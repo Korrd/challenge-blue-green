@@ -41,9 +41,9 @@ else
 
 	elif [ "$live" = "green" ]; then
 	  echo "LIVE service is $(tput setaf 2)"$live"$(tput sgr 0)"
-	  echo "Deploying to $(tput setaf 4)GREEN...$(tput sgr 0)"
+	  echo "Deploying to $(tput setaf 4)BLUE...$(tput sgr 0)"
 
-		docker service update --image korrd2/challenge-bg-scroll:$1 green-service
+		docker service update --image korrd2/challenge-bg-scroll:$1 blue-service
 
 	  echo "Finished!"
 
